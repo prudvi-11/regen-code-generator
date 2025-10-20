@@ -1,0 +1,498 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #f5f5f5;
+  overflow: hidden;
+}
+
+.App {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+/* FUTURISTIC TECH LOGO HEADER */
+.app-header {
+  background: #0f172a;
+  padding: 0.6rem 1.5rem;
+  border-bottom: 2px solid #2563eb;
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
+}
+
+.brand h1 {
+  color: #60a5fa;
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  margin: 0;
+  font-family: 'Courier New', 'Courier', monospace;
+  text-transform: uppercase;
+  line-height: 1;
+  padding: 0.5rem 1.5rem;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  box-shadow: 
+    0 0 20px rgba(37, 99, 235, 0.5),
+    inset 0 0 20px rgba(37, 99, 235, 0.1);
+  position: relative;
+  text-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
+  display: inline-block;
+}
+
+.brand h1::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #2563eb, #7c3aed, #2563eb);
+  border-radius: 8px;
+  z-index: -1;
+  opacity: 0.5;
+  animation: borderGlow 3s ease-in-out infinite;
+}
+
+@keyframes borderGlow {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.tagline {
+  display: none;
+}
+
+/* EQUAL SPLIT WORKSPACE 50/50 */
+.workspace {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: calc(100vh - 60px);
+  background: #f9fafb;
+}
+
+.generator-panel {
+  background: white;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.section-header {
+  padding: 0.6rem 1rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-header h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.generator-body {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.select-input {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+  color: #111827;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.select-input:hover {
+  border-color: #2563eb;
+}
+
+.select-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.description-input {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+  color: #111827;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto';
+  resize: vertical;
+  transition: all 0.2s;
+  line-height: 1.5;
+}
+
+.description-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.description-input::placeholder {
+  color: #9ca3af;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.btn-secondary,
+.btn-success,
+.btn-danger,
+.btn-transfer {
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+}
+
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #059669;
+}
+
+.btn-success:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.btn-transfer {
+  background: #8b5cf6;
+  color: white;
+}
+
+.btn-transfer:hover:not(:disabled) {
+  background: #7c3aed;
+}
+
+.btn-transfer:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.15rem 0.4rem;
+  transition: all 0.2s;
+}
+
+.btn-close:hover {
+  color: #111827;
+}
+
+.right-panel {
+  background: white;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.input-section {
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.input-section label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  color: #111827;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  resize: vertical;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.editor-wrapper {
+  flex: 1;
+  overflow: hidden;
+  background: #1e1e1e;
+}
+
+.output-panel-gen {
+  position: relative;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  min-height: 150px;
+}
+
+.resize-bar {
+  height: 10px;
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.resize-bar:hover {
+  background: #e5e7eb;
+}
+
+.resize-bar span {
+  color: #9ca3af;
+  font-size: 0.65rem;
+  user-select: none;
+}
+
+.output-body {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  background: #f9fafb;
+}
+
+.output-body strong {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.output-body pre {
+  background: white;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.generated-code {
+  background: #ffffff !important;
+  border: 2px solid #2563eb !important;
+  color: #0f172a !important;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+  letter-spacing: 0.01em;
+}
+
+.generator-body::-webkit-scrollbar,
+.output-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.generator-body::-webkit-scrollbar-track,
+.output-body::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+.generator-body::-webkit-scrollbar-thumb,
+.output-body::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+/* INTERACTIVE TERMINAL */
+.terminal-panel {
+  position: relative;
+  background: #0a0a0a;
+  border-top: 2px solid #2563eb;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  box-shadow: 0 -4px 20px rgba(37, 99, 235, 0.2);
+}
+
+.terminal-header {
+  background: #1a1a1a !important;
+  border-bottom: 1px solid #2563eb !important;
+}
+
+.terminal-header h2 {
+  color: #60a5fa !important;
+}
+
+.terminal-body {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  background: #0a0a0a;
+}
+
+.terminal-output {
+  background: transparent;
+  padding: 0;
+  border: none;
+  overflow-x: auto;
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: #00ff00;
+}
+
+.terminal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.terminal-body::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+.terminal-body::-webkit-scrollbar-thumb {
+  background: #2563eb;
+  border-radius: 4px;
+}
+
+/* FOOTER */
+.app-footer {
+  background: #0f172a;
+  border-top: 2px solid #2563eb;
+  color: #94a3b8;
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  box-shadow: 0 -4px 20px rgba(37, 99, 235, 0.2);
+}
+
+.app-footer strong {
+  color: #60a5fa;
+  font-weight: 600;
+  text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
+}
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: 50% 50%;
+  }
+  
+  .generator-panel {
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+}
