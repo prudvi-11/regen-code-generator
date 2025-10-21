@@ -85,26 +85,22 @@ function App() {
     }
 
     setLoading(true);
-    setGeneratedCode('🔄 Connecting to AI server...\n\nThis may take 30-50 seconds if the server is waking up from sleep.\nPlease wait...');
+    setGeneratedCode('🔄 Connecting to AI server...\n\nPlease wait 10-50 seconds...');
     setShowGenOutput(true);
     
     try {
       const response = await axios.post(`${API_URL}/generate`, {
         prompt: prompt
       }, {
-        timeout: 60000 // 60 second timeout
+        timeout: 60000
       });
       
       console.log('Generate Response:', response.data);
       
       if (response.data && response.data.code) {
         setGeneratedCode(response.data.code);
-      } else if (response.data && response.data.content) {
-        setGeneratedCode(response.data.content);
-      } else if (response.data && typeof response.data === 'string') {
-        setGeneratedCode(response.data);
       } else {
-        setGeneratedCode('❌ Error: Server returned unexpected format\n\nResponse: ' + JSON.stringify(response.data));
+        setGeneratedCode('❌ Error: No code received from server');
       }
     } catch (err) {
       console.error('Generate Error:', err);
@@ -112,13 +108,13 @@ function App() {
       let errorMsg = '❌ CODE GENERATION FAILED\n\n';
       
       if (err.code === 'ECONNABORTED') {
-        errorMsg += '⏱️ Request Timeout\n\nThe server took too long to respond. It might be waking up.\n\n✅ Solution: Wait 30 seconds and click "Generate Code" again.';
-      } else if (err.response) {
-        errorMsg += '🔴 Server Error\n\n' + (err.response.data?.detail || err.response.statusText || 'Unknown server error');
+        errorMsg += 'Request timeout. Server might be waking up.\n\nWait 30 seconds and try again.';
+      } else if (err.response && err.response.data) {
+        errorMsg += err.response.data.detail || JSON.stringify(err.response.data);
       } else if (err.request) {
-        errorMsg += '🌐 Connection Error\n\nCannot reach the backend server.\n\nPossible reasons:\n1. Server is sleeping (Render free tier) - Wait 50 seconds\n2. No internet connection\n3. Backend is down\n\n✅ Solution: Wait and try again in 1 minute.';
+        errorMsg += 'Cannot reach server. Wait 50 seconds and try again.';
       } else {
-        errorMsg += 'Unknown Error: ' + err.message;
+        errorMsg += err.message || 'Unknown error';
       }
       
       setGeneratedCode(errorMsg);
@@ -128,11 +124,11 @@ function App() {
 
   const handleTransferCode = () => {
     if (!generatedCode || generatedCode.includes('❌') || generatedCode.includes('🔄')) {
-      alert('Cannot transfer - no valid code generated yet');
+      alert('Cannot transfer - no valid code generated');
       return;
     }
     setCode(generatedCode);
-    alert('✅ Code transferred to editor!');
+    alert('✅ Code transferred!');
   };
 
   const handleExecuteCode = async () => {
@@ -142,7 +138,7 @@ function App() {
     }
 
     setExecuting(true);
-    setTerminalOutput('>>> Running program...\n\n');
+    setTerminalOutput('>>> Executing program...\n\n');
     setShowTerminal(true);
     
     try {
@@ -150,28 +146,49 @@ function App() {
         code: code,
         input: userInputs
       }, {
-        timeout: 30000 // 30 second timeout for execution
+        timeout: 30000
       });
       
-      console.log('Execute Response:', response.data);
+      console.log('Execute Full Response:', response);
+      console.log('Execute Response Data:', response.data);
       
-      if (response.data && response.data.output !== undefined) {
-        setTerminalOutput(response.data.output || '✅ Program executed successfully\n(No output produced)');
+      if (response.data) {
+        if (typeof response.data.output === 'string') {
+          setTerminalOutput(response.data.output || '✅ Executed (No output)');
+        } else if (response.data.error) {
+          setTerminalOutput('❌ ERROR:\n\n' + response.data.error);
+        } else if (response.data.output !== undefined) {
+          setTerminalOutput(String(response.data.output) || '✅ Executed (No output)');
+        } else {
+          setTerminalOutput('❌ Unexpected format:\n\n' + JSON.stringify(response.data, null, 2));
+        }
       } else {
-        setTerminalOutput('❌ Error: Invalid response from server');
+        setTerminalOutput('❌ No response from server');
       }
       
     } catch (err) {
       console.error('Execute Error:', err);
+      console.error('Error Response:', err.response);
       
       let errorMsg = '❌ EXECUTION FAILED\n\n';
       
       if (err.response) {
-        errorMsg += err.response.data?.detail || err.response.statusText || 'Unknown error';
+        console.log('Error Response Data:', err.response.data);
+        
+        if (typeof err.response.data === 'string') {
+          errorMsg += err.response.data;
+        } else if (err.response.data) {
+          errorMsg += err.response.data.detail || 
+                      err.response.data.error || 
+                      err.response.data.message || 
+                      JSON.stringify(err.response.data, null, 2);
+        } else {
+          errorMsg += 'Server error: ' + err.response.statusText;
+        }
       } else if (err.request) {
-        errorMsg += 'Cannot reach server. Check your connection.';
+        errorMsg += '🌐 Cannot reach server';
       } else {
-        errorMsg += err.message;
+        errorMsg += err.message || 'Unknown error';
       }
       
       setTerminalOutput(errorMsg);
@@ -224,7 +241,7 @@ function App() {
               disabled={loading}
               className="btn-primary"
             >
-              {loading ? '⏳ Generating (may take 50s)...' : '✨ Generate Code'}
+              {loading ? '⏳ Generating...' : '✨ Generate Code'}
             </button>
           </div>
 
