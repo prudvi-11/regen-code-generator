@@ -90,68 +90,64 @@ function App() {
     
     try {
       const response = await axios.post(`${API_URL}/generate`, {
-        prompt: prompt
+        prompt: prompt,
+        language: language,
+        code: ''
       }, {
         timeout: 60000
       });
       
-      console.log('=== GENERATE RESPONSE ===');
-      console.log('Full response:', response);
-      console.log('Response data:', response.data);
-      console.log('Response data type:', typeof response.data);
-      console.log('Response data keys:', response.data ? Object.keys(response.data) : 'null');
+      console.log('Generate Response:', response.data);
       
-      let codeText = '';
-      
-      if (typeof response.data === 'string') {
-        codeText = response.data;
-      } else if (response.data) {
-        codeText = response.data.code || 
-                   response.data.content || 
-                   response.data.generated_code || 
-                   response.data.result || 
-                   response.data.text || 
-                   '';
-      }
-      
-      if (codeText) {
-        setGeneratedCode(codeText);
+      if (response.data.content) {
+        setGeneratedCode(response.data.content);
+      } else if (response.data.code) {
+        setGeneratedCode(response.data.code);
       } else {
-        setGeneratedCode('❌ No code in response\n\nFull response:\n' + JSON.stringify(response.data, null, 2));
+        setGeneratedCode('❌ No code in response');
       }
       
     } catch (err) {
-      console.error('=== GENERATE ERROR ===');
-      console.error('Error:', err);
-      console.error('Error response:', err.response);
-      
-      let errorMsg = '❌ CODE GENERATION FAILED\n\n';
-      
-      if (err.code === 'ECONNABORTED') {
-        errorMsg += 'Timeout - server might be waking up. Try again in 30 seconds.';
-      } else if (err.response) {
-        errorMsg += 'Status: ' + err.response.status + '\n';
-        errorMsg += 'Error: ' + (err.response.data?.detail || JSON.stringify(err.response.data));
-      } else if (err.request) {
-        errorMsg += 'Cannot reach server. Wait 50 seconds and try again.';
-      } else {
-        errorMsg += err.message;
-      }
-      
-      setGeneratedCode(errorMsg);
+      console.error('Generate Error:', err);
+      setGeneratedCode('❌ CODE GENERATION FAILED\n\n' + (err.response?.data?.detail || err.message));
     }
     setLoading(false);
   };
-
-  const handleTransferCode = () => {
-    if (!generatedCode || generatedCode.includes('❌') || generatedCode.includes('🔄')) {
-      alert('Cannot transfer - no valid code generated');
-      return;
-    }
-    setCode(generatedCode);
-    alert('✅ Code transferred!');
-  };
-
+    const handleTransferCode = () => {
+  if (!generatedCode || generatedCode.includes('❌') || generatedCode.includes('🔄')) {
+    alert('Cannot transfer - no valid code generated');
+    return;
+  }
+  
+  let cleanedCode = generatedCode;
+  
+  // Extract code from markdown code blocks
+  const codeBlockRegex = /``````/g;
+  const matches = [...cleanedCode.matchAll(codeBlockRegex)];
+  
+  if (matches.length > 0) {
+    // Take FIRST code block only
+    cleanedCode = matches[0][1];
+  }
+  
+  // Remove comments and empty lines
+  cleanedCode = cleanedCode
+    .split('\n')
+    .filter(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('#')) return false;
+      if (trimmed.startsWith('//')) return false;
+      if (trimmed === '') return false;
+      return true;
+    })
+    .join('\n')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '')
+    .trim();
+  
+  setCode(cleanedCode);
+  alert('✅ Code transferred and cleaned!');
+};
   const handleExecuteCode = async () => {
     if (!code.trim()) {
       alert('Please write some code first!');
