@@ -162,55 +162,12 @@ function App() {
     setTerminalOutput('>>> Executing program...\n\n');
     setShowTerminal(true);
     
-    try {
-      const response = await axios.post(`${API_URL}/execute`, {
-        code: code,
-        input: userInputs
-      }, {
-        timeout: 30000
-      });
-      
-      console.log('Execute Response:', response.data);
-      
-      let outputText = '';
-      const data = response.data;
-      
-      if (data.output !== undefined && data.output !== null) {
-        if (typeof data.output === 'object') {
-          outputText = JSON.stringify(data.output, null, 2);
-        } else {
-          outputText = String(data.output);
-        }
-      } else if (data.error) {
-        outputText = '❌ ERROR:\n\n' + String(data.error);
-      } else {
-        outputText = JSON.stringify(data, null, 2);
-      }
-      
-      setTerminalOutput(outputText || '(No output)');
-      
-    } catch (err) {
-      console.error('Execute Error:', err);
-      console.error('Error Response Data:', err.response?.data);
-      
-      let errorMsg = '❌ EXECUTION FAILED\n\n';
-      
-      if (err.response?.data) {
-        if (typeof err.response.data === 'string') {
-          errorMsg += err.response.data;
-        } else {
-          errorMsg += 'Status: ' + err.response.status + '\n\n';
-          errorMsg += err.response.data.detail || JSON.stringify(err.response.data, null, 2);
-        }
-      } else if (err.request) {
-        errorMsg += 'Cannot reach server';
-      } else {
-        errorMsg += err.message;
-      }
-      
-      setTerminalOutput(errorMsg);
-    }
+    const response = await axios.post(`${API_URL}/execute`, {
+      code: code,
+      input: userInputs
+    });
     
+    setTerminalOutput(response.data.output);
     setExecuting(false);
   };
 
