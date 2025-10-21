@@ -85,7 +85,7 @@ function App() {
     }
 
     setLoading(true);
-    setGeneratedCode('🔄 Connecting to AI server...\n\nPlease wait 10-50 seconds...');
+    setGeneratedCode('🔄 Generating code...\n\nPlease wait...');
     setShowGenOutput(true);
     
     try {
@@ -95,26 +95,48 @@ function App() {
         timeout: 60000
       });
       
-      console.log('Generate Response:', response.data);
+      console.log('=== GENERATE RESPONSE ===');
+      console.log('Full response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response data type:', typeof response.data);
+      console.log('Response data keys:', response.data ? Object.keys(response.data) : 'null');
       
-      if (response.data && response.data.code) {
-        setGeneratedCode(response.data.code);
-      } else {
-        setGeneratedCode('❌ Error: No code received from server');
+      // Try ALL possible response formats
+      let codeText = '';
+      
+      if (typeof response.data === 'string') {
+        codeText = response.data;
+      } else if (response.data) {
+        codeText = response.data.code || 
+                   response.data.content || 
+                   response.data.generated_code || 
+                   response.data.result || 
+                   response.data.text || 
+                   '';
       }
+      
+      if (codeText) {
+        setGeneratedCode(codeText);
+      } else {
+        setGeneratedCode('❌ No code in response\n\nFull response:\n' + JSON.stringify(response.data, null, 2));
+      }
+      
     } catch (err) {
-      console.error('Generate Error:', err);
+      console.error('=== GENERATE ERROR ===');
+      console.error('Error:', err);
+      console.error('Error response:', err.response);
       
       let errorMsg = '❌ CODE GENERATION FAILED\n\n';
       
       if (err.code === 'ECONNABORTED') {
-        errorMsg += 'Request timeout. Server might be waking up.\n\nWait 30 seconds and try again.';
-      } else if (err.response && err.response.data) {
-        errorMsg += err.response.data.detail || JSON.stringify(err.response.data);
+        errorMsg += 'Timeout - server might be waking up. Try again in 30 seconds.';
+      } else if (err.response) {
+        errorMsg += 'Status: ' + err.response.status + '\n';
+        errorMsg += 'Error: ' + (err.response.data?.detail || JSON.stringify(err.response.data));
       } else if (err.request) {
         errorMsg += 'Cannot reach server. Wait 50 seconds and try again.';
       } else {
-        errorMsg += err.message || 'Unknown error';
+        errorMsg += err.message;
       }
       
       setGeneratedCode(errorMsg);
@@ -149,44 +171,65 @@ function App() {
         timeout: 30000
       });
       
-      console.log('Execute Response:', response);
-      console.log('Execute Data:', response.data);
+      console.log('=== EXECUTE RESPONSE ===');
+      console.log('Full response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response data type:', typeof response.data);
+      console.log('Response data keys:', response.data ? Object.keys(response.data) : 'null');
       
-      // THE FIX: Properly stringify the output
+      // Try ALL possible output formats
       let outputText = '';
       
-      if (response.data.output !== undefined && response.data.output !== null) {
-        // Convert to string safely
-        if (typeof response.data.output === 'object') {
-          outputText = JSON.stringify(response.data.output, null, 2);
+      if (typeof response.data === 'string') {
+        outputText = response.data;
+      } else if (response.data) {
+        const data = response.data;
+        
+        // Check all possible field names
+        if (data.output !== undefined && data.output !== null) {
+          if (typeof data.output === 'object') {
+            outputText = JSON.stringify(data.output, null, 2);
+          } else {
+            outputText = String(data.output);
+          }
+        } else if (data.result !== undefined) {
+          outputText = String(data.result);
+        } else if (data.stdout) {
+          outputText = String(data.stdout);
+        } else if (data.error) {
+          outputText = '❌ ERROR:\n\n' + String(data.error);
+        } else if (data.stderr) {
+          outputText = '❌ STDERR:\n\n' + String(data.stderr);
         } else {
-          outputText = String(response.data.output);
+          outputText = '❌ Unknown format\n\nFull response:\n' + JSON.stringify(data, null, 2);
         }
-      } else if (response.data.error) {
-        outputText = '❌ ERROR:\n\n' + String(response.data.error);
       } else {
-        outputText = JSON.stringify(response.data, null, 2);
+        outputText = '❌ Empty response';
       }
       
       setTerminalOutput(outputText || '(No output)');
       
     } catch (err) {
-      console.error('Execute Error:', err);
+      console.error('=== EXECUTE ERROR ===');
+      console.error('Error:', err);
+      console.error('Error response:', err.response);
       
       let errorMsg = '❌ EXECUTION FAILED\n\n';
       
-      if (err.response && err.response.data) {
+      if (err.response) {
+        errorMsg += 'Status: ' + err.response.status + '\n';
+        
         if (typeof err.response.data === 'string') {
           errorMsg += err.response.data;
-        } else if (err.response.data.detail) {
-          errorMsg += err.response.data.detail;
-        } else {
-          errorMsg += JSON.stringify(err.response.data, null, 2);
+        } else if (err.response.data) {
+          errorMsg += err.response.data.detail || 
+                      err.response.data.error || 
+                      JSON.stringify(err.response.data, null, 2);
         }
       } else if (err.request) {
-        errorMsg += '🌐 Cannot reach server';
+        errorMsg += 'Cannot reach server';
       } else {
-        errorMsg += err.message || 'Unknown error';
+        errorMsg += err.message;
       }
       
       setTerminalOutput(errorMsg);
