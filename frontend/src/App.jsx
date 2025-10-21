@@ -1,148 +1,76 @@
-import React, { useState, useRef, useEffect } from 'react';
-import Editor from "@monaco-editor/react";
-import axios from 'axios';
+import React, { useState } from 'react';
 import './App.css';
+import axios from 'axios';
 
 const API_URL = 'https://regen-backend-17jv.onrender.com/api';
 
-
 function App() {
-  const [code, setCode] = useState('');
-  const [generatedCode, setGeneratedCode] = useState('');
   const [language, setLanguage] = useState('python');
-  const [prompt, setPrompt] = useState('');
-  const [userInputs, setUserInputs] = useState('');
+  const [description, setDescription] = useState('');
+  const [generatedCode, setGeneratedCode] = useState('');
+  const [editorCode, setEditorCode] = useState('');
+  const [input, setInput] = useState('');
+  const [output, setOutput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [executing, setExecuting] = useState(false);
-  const [showGenOutput, setShowGenOutput] = useState(false);
-  const [showTerminal, setShowTerminal] = useState(false);
-  const [terminalOutput, setTerminalOutput] = useState('');
-  const [genOutputHeight, setGenOutputHeight] = useState(280);
-  const [terminalHeight, setTerminalHeight] = useState(300);
-  
-  const genResizeRef = useRef(null);
-  const termResizeRef = useRef(null);
-  const isResizingGen = useRef(false);
-  const isResizingTerm = useRef(false);
+  const [showGenerated, setShowGenerated] = useState(false);
 
-  const languages = [
-    'python', 'javascript', 'java', 'cpp', 'c', 'csharp', 'go', 'rust',
-    'typescript', 'php', 'ruby', 'swift', 'kotlin', 'sql', 'html', 'css'
-  ];
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (isResizingGen.current) {
-        const leftPanel = document.querySelector('.generator-panel');
-        const rect = leftPanel.getBoundingClientRect();
-        const newHeight = rect.bottom - e.clientY;
-        if (newHeight >= 180 && newHeight <= rect.height - 200) {
-          setGenOutputHeight(newHeight);
-        }
-      }
-      
-      if (isResizingTerm.current) {
-        const rightPanel = document.querySelector('.right-panel');
-        const rect = rightPanel.getBoundingClientRect();
-        const newHeight = rect.bottom - e.clientY;
-        if (newHeight >= 200 && newHeight <= rect.height - 250) {
-          setTerminalHeight(newHeight);
-        }
-      }
-    };
-
-    const handleMouseUp = () => {
-      isResizingGen.current = false;
-      isResizingTerm.current = false;
-      document.body.style.cursor = 'default';
-      document.body.style.userSelect = 'auto';
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, []);
-
-  const handleGenResizeStart = () => {
-    isResizingGen.current = true;
-    document.body.style.cursor = 'ns-resize';
-    document.body.style.userSelect = 'none';
-  };
-
-  const handleTermResizeStart = () => {
-    isResizingTerm.current = true;
-    document.body.style.cursor = 'ns-resize';
-    document.body.style.userSelect = 'none';
-  };
-
-  const handleGenerateCode = async () => {
-    if (!prompt.trim()) {
-      alert('Please enter a description!');
+  const handleGenerate = async () => {
+    if (!description.trim()) {
+      alert('Please enter a description');
       return;
     }
 
     setLoading(true);
     setGeneratedCode('');
-    setShowGenOutput(true);
-    
+    setShowGenerated(false);
+
     try {
       const response = await axios.post(`${API_URL}/generate`, {
-        prompt: prompt,
-        code: code,
-        language: language
+        prompt: `Write ${language} code: ${description}`
       });
-      setGeneratedCode(response.data.content);
-    } catch (err) {
-      setGeneratedCode('Error: ' + (err.response?.data?.detail || err.message));
+
+      setGeneratedCode(response.data.code);
+      setShowGenerated(true);
+    } catch (error) {
+      alert('Failed to generate code: ' + (error.response?.data?.detail || error.message));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleTransferCode = () => {
-    setCode(generatedCode);
-    alert('Code transferred to editor!');
+  const handleTransfer = () => {
+    setEditorCode(generatedCode);
+    setShowGenerated(false);
+    setOutput('');
   };
 
-  const handleExecuteCode = async () => {
-    if (!code.trim()) {
-      alert('Please write some code first!');
+  const handleExecute = async () => {
+    if (!editorCode.trim()) {
+      alert('Please enter code to execute');
       return;
     }
 
-    if (language !== 'python' && language !== 'javascript') {
-      alert('Execution only supported for Python and JavaScript');
-      return;
-    }
+    setLoading(true);
+    setOutput('');
 
-    setExecuting(true);
-    setTerminalOutput('>>> Running program...\n\n');
-    setShowTerminal(true);
-    
     try {
       const response = await axios.post(`${API_URL}/execute`, {
-        code: code,
-        language: language,
-        user_inputs: userInputs
+        code: editorCode,
+        input: input
       });
-      
-      const output = response.data.output || '';
-      const error = response.data.error || '';
-      
-      if (error) {
-        setTerminalOutput('❌ ERROR:\n' + error);
-      } else {
-        setTerminalOutput(output || '(No output produced)');
-      }
-      
-    } catch (err) {
-      setTerminalOutput('❌ Execution failed: ' + (err.response?.data?.detail || err.message));
+
+      setOutput(response.data.output);
+    } catch (error) {
+      setOutput('Error: ' + (error.response?.data?.detail || error.message));
+    } finally {
+      setLoading(false);
     }
-    
-    setExecuting(false);
+  };
+
+  const handleClear = () => {
+    setEditorCode('');
+    setInput('');
+    setOutput('');
   };
 
   return (
@@ -150,158 +78,147 @@ function App() {
       <header className="app-header">
         <div className="brand">
           <h1>REGEN</h1>
+          <p className="developer-credit">Developed by B. Prudvi Thirumal Reddy</p>
         </div>
       </header>
 
       <div className="workspace">
+        {/* LEFT PANEL - CODE GENERATOR */}
         <div className="generator-panel">
           <div className="section-header">
-            <h2>Code Generator</h2>
+            <h2>⚡ Code Generator</h2>
           </div>
-          
+
           <div className="generator-body">
             <div className="form-group">
-              <label>Programming Language</label>
+              <label>Language</label>
               <select 
-                value={language} 
-                onChange={(e) => setLanguage(e.target.value)}
                 className="select-input"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
               >
-                {languages.map(lang => (
-                  <option key={lang} value={lang}>{lang.toUpperCase()}</option>
-                ))}
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="java">Java</option>
+                <option value="cpp">C++</option>
               </select>
             </div>
 
             <div className="form-group">
-              <label>Code Description</label>
+              <label>Description</label>
               <textarea
-                placeholder="Describe the code you want to generate..."
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
                 className="description-input"
-                rows="8"
+                rows="6"
+                placeholder="Describe the code you want to generate..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
               />
             </div>
-            
+
             <button 
-              onClick={handleGenerateCode} 
-              disabled={loading}
               className="btn-primary"
+              onClick={handleGenerate}
+              disabled={loading}
             >
-              {loading ? 'Generating...' : 'Generate Code'}
+              {loading ? '⏳ Generating...' : '✨ Generate Code'}
             </button>
           </div>
 
-          {showGenOutput && (
-            <div className="output-panel-gen" style={{ height: `${genOutputHeight}px` }}>
-              <div 
-                className="resize-bar" 
-                onMouseDown={handleGenResizeStart}
-                ref={genResizeRef}
-              >
-                <span>⋮⋮⋮</span>
-              </div>
-              
+          {showGenerated && generatedCode && (
+            <div className="output-panel-gen">
               <div className="section-header">
-                <h2>Generated Code</h2>
+                <h2>✅ Generated Code</h2>
                 <div className="header-actions">
                   <button 
-                    onClick={handleTransferCode}
-                    disabled={!generatedCode || loading}
                     className="btn-transfer"
+                    onClick={handleTransfer}
+                    disabled={loading}
                   >
-                    ➜ Use Code
+                    ➡️ Transfer
                   </button>
                   <button 
-                    onClick={() => setShowGenOutput(false)}
                     className="btn-close"
+                    onClick={() => setShowGenerated(false)}
                   >
                     ✕
                   </button>
                 </div>
               </div>
-              
               <div className="output-body">
-                <pre className="generated-code">{generatedCode || 'Generating...'}</pre>
+                <pre className="generated-code">{generatedCode}</pre>
               </div>
             </div>
           )}
         </div>
 
+        {/* RIGHT PANEL - CODE EDITOR */}
         <div className="right-panel">
           <div className="editor-section">
             <div className="section-header">
-              <h2>Code Editor</h2>
+              <h2>📝 Code Editor</h2>
               <div className="header-actions">
                 <button 
-                  onClick={handleExecuteCode} 
-                  disabled={executing || !code}
                   className="btn-success"
+                  onClick={handleExecute}
+                  disabled={loading}
                 >
-                  {executing ? 'Running...' : '▶ Run'}
+                  ▶️ Run
                 </button>
                 <button 
-                  onClick={() => setCode('')}
                   className="btn-danger"
+                  onClick={handleClear}
                 >
-                  Clear
+                  🗑️ Clear
                 </button>
               </div>
             </div>
 
             <div className="input-section">
-              <label>📥 Program Inputs (one per line)</label>
+              <label>Input (optional)</label>
               <textarea
-                placeholder="Enter inputs here (one per line)&#10;Example:&#10;John&#10;25"
-                value={userInputs}
-                onChange={(e) => setUserInputs(e.target.value)}
                 className="input-field"
                 rows="2"
+                placeholder="Enter input for your code..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
               />
             </div>
 
             <div className="editor-wrapper">
-              <Editor
-                height={showTerminal ? `calc(100% - ${terminalHeight}px - 140px)` : 'calc(100% - 140px)'}
-                language={language}
-                value={code}
-                onChange={setCode}
-                theme="vs-dark"
-                options={{
-                  fontSize: 14,
-                  minimap: { enabled: true },
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                  lineNumbers: 'on',
-                  padding: { top: 10 },
+              <textarea
+                className="code-editor"
+                placeholder="Write or paste your code here..."
+                value={editorCode}
+                onChange={(e) => setEditorCode(e.target.value)}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  background: '#1e1e1e',
+                  color: '#d4d4d4',
+                  border: 'none',
+                  padding: '1rem',
+                  fontFamily: "'Courier New', monospace",
+                  fontSize: '0.9rem',
+                  lineHeight: '1.5',
+                  resize: 'none'
                 }}
               />
             </div>
           </div>
 
-          {showTerminal && (
-            <div className="terminal-panel" style={{ height: `${terminalHeight}px` }}>
-              <div 
-                className="resize-bar" 
-                onMouseDown={handleTermResizeStart}
-                ref={termResizeRef}
-              >
-                <span>⋮⋮⋮</span>
-              </div>
-              
+          {output && (
+            <div className="terminal-panel">
               <div className="section-header terminal-header">
-                <h2>🖥️ Terminal Output</h2>
+                <h2>💻 Output Terminal</h2>
                 <button 
-                  onClick={() => setShowTerminal(false)}
                   className="btn-close"
+                  onClick={() => setOutput('')}
                 >
                   ✕
                 </button>
               </div>
-              
               <div className="terminal-body">
-                <pre className="terminal-output">{terminalOutput}</pre>
+                <pre className="terminal-output">{output}</pre>
               </div>
             </div>
           )}
@@ -309,7 +226,15 @@ function App() {
       </div>
 
       <footer className="app-footer">
-        <p>© 2025 REGEN | Developed by <strong>B. Prudvi Thirumal Reddy</strong></p>
+        <p>
+          <strong>Developed by B. Prudvi Thirumal Reddy</strong> | 
+          <a href="https://github.com/prudvi-11" target="_blank" rel="noopener noreferrer">
+            GitHub
+          </a> | 
+          <a href="https://github.com/prudvi-11/regen-code-generator" target="_blank" rel="noopener noreferrer">
+            View Source
+          </a>
+        </p>
       </footer>
     </div>
   );
