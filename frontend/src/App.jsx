@@ -164,7 +164,8 @@ function App() {
     
     const response = await axios.post(`${API_URL}/execute`, {
       code: code,
-      input: userInputs
+      language: language,
+      user_inputs: userInputs
     });
     
     setTerminalOutput(response.data.output);
