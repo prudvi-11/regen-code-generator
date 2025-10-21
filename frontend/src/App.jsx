@@ -85,33 +85,54 @@ function App() {
     }
 
     setLoading(true);
-    setGeneratedCode('');
+    setGeneratedCode('🔄 Connecting to AI server...\n\nThis may take 30-50 seconds if the server is waking up from sleep.\nPlease wait...');
     setShowGenOutput(true);
     
     try {
       const response = await axios.post(`${API_URL}/generate`, {
         prompt: prompt
+      }, {
+        timeout: 60000 // 60 second timeout
       });
       
       console.log('Generate Response:', response.data);
       
-      // FIX: Properly extract code from response
       if (response.data && response.data.code) {
         setGeneratedCode(response.data.code);
+      } else if (response.data && response.data.content) {
+        setGeneratedCode(response.data.content);
+      } else if (response.data && typeof response.data === 'string') {
+        setGeneratedCode(response.data);
       } else {
-        setGeneratedCode('Error: No code generated');
+        setGeneratedCode('❌ Error: Server returned unexpected format\n\nResponse: ' + JSON.stringify(response.data));
       }
     } catch (err) {
       console.error('Generate Error:', err);
-      const errorMsg = err.response?.data?.detail || err.message || 'Failed to generate code';
-      setGeneratedCode('Error: ' + errorMsg);
+      
+      let errorMsg = '❌ CODE GENERATION FAILED\n\n';
+      
+      if (err.code === 'ECONNABORTED') {
+        errorMsg += '⏱️ Request Timeout\n\nThe server took too long to respond. It might be waking up.\n\n✅ Solution: Wait 30 seconds and click "Generate Code" again.';
+      } else if (err.response) {
+        errorMsg += '🔴 Server Error\n\n' + (err.response.data?.detail || err.response.statusText || 'Unknown server error');
+      } else if (err.request) {
+        errorMsg += '🌐 Connection Error\n\nCannot reach the backend server.\n\nPossible reasons:\n1. Server is sleeping (Render free tier) - Wait 50 seconds\n2. No internet connection\n3. Backend is down\n\n✅ Solution: Wait and try again in 1 minute.';
+      } else {
+        errorMsg += 'Unknown Error: ' + err.message;
+      }
+      
+      setGeneratedCode(errorMsg);
     }
     setLoading(false);
   };
 
   const handleTransferCode = () => {
+    if (!generatedCode || generatedCode.includes('❌') || generatedCode.includes('🔄')) {
+      alert('Cannot transfer - no valid code generated yet');
+      return;
+    }
     setCode(generatedCode);
-    alert('Code transferred to editor!');
+    alert('✅ Code transferred to editor!');
   };
 
   const handleExecuteCode = async () => {
@@ -128,21 +149,32 @@ function App() {
       const response = await axios.post(`${API_URL}/execute`, {
         code: code,
         input: userInputs
+      }, {
+        timeout: 30000 // 30 second timeout for execution
       });
       
       console.log('Execute Response:', response.data);
       
-      // FIX: Properly extract output from response
       if (response.data && response.data.output !== undefined) {
-        setTerminalOutput(response.data.output || '(No output produced)');
+        setTerminalOutput(response.data.output || '✅ Program executed successfully\n(No output produced)');
       } else {
-        setTerminalOutput('Error: Invalid response from server');
+        setTerminalOutput('❌ Error: Invalid response from server');
       }
       
     } catch (err) {
       console.error('Execute Error:', err);
-      const errorMsg = err.response?.data?.detail || err.message || 'Execution failed';
-      setTerminalOutput('❌ ERROR: ' + errorMsg);
+      
+      let errorMsg = '❌ EXECUTION FAILED\n\n';
+      
+      if (err.response) {
+        errorMsg += err.response.data?.detail || err.response.statusText || 'Unknown error';
+      } else if (err.request) {
+        errorMsg += 'Cannot reach server. Check your connection.';
+      } else {
+        errorMsg += err.message;
+      }
+      
+      setTerminalOutput(errorMsg);
     }
     
     setExecuting(false);
@@ -192,7 +224,7 @@ function App() {
               disabled={loading}
               className="btn-primary"
             >
-              {loading ? '⏳ Generating...' : '✨ Generate Code'}
+              {loading ? '⏳ Generating (may take 50s)...' : '✨ Generate Code'}
             </button>
           </div>
 
@@ -211,7 +243,7 @@ function App() {
                 <div className="header-actions">
                   <button 
                     onClick={handleTransferCode}
-                    disabled={!generatedCode || loading}
+                    disabled={loading}
                     className="btn-transfer"
                   >
                     ➡️ Transfer
@@ -226,9 +258,7 @@ function App() {
               </div>
               
               <div className="output-body">
-                <pre className="generated-code">
-                  {loading ? 'Generating code...' : generatedCode || 'No code generated yet'}
-                </pre>
+                <pre className="generated-code">{generatedCode}</pre>
               </div>
             </div>
           )}
@@ -247,7 +277,7 @@ function App() {
                   {executing ? '⏳ Running...' : '▶️ Run'}
                 </button>
                 <button 
-                  onClick={() => setCode('')}
+                  onClick={() => { setCode(''); setUserInputs(''); setTerminalOutput(''); setShowTerminal(false); }}
                   className="btn-danger"
                 >
                   🗑️ Clear
