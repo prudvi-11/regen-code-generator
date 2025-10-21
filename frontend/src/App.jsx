@@ -162,13 +162,28 @@ function App() {
     setTerminalOutput('>>> Executing program...\n\n');
     setShowTerminal(true);
     
-    const response = await axios.post(`${API_URL}/execute`, {
-      code: code,
-      language: language,
-      user_inputs: userInputs
-    });
+    try {
+      const response = await axios.post(`${API_URL}/execute`, {
+        code: code,
+        language: language,
+        user_inputs: userInputs
+      });
+      
+      console.log('Execute Response:', response.data);
+      
+      if (response.data.output) {
+        setTerminalOutput(response.data.output);
+      } else if (response.data.error) {
+        setTerminalOutput('❌ ERROR:\n\n' + response.data.error);
+      } else {
+        setTerminalOutput('✅ Code executed (no output)');
+      }
+      
+    } catch (err) {
+      console.error('Execute Error:', err);
+      setTerminalOutput('❌ ERROR:\n\n' + (err.response?.data?.detail || err.message));
+    }
     
-    setTerminalOutput(response.data.output);
     setExecuting(false);
   };
 
