@@ -101,7 +101,6 @@ function App() {
       console.log('Response data type:', typeof response.data);
       console.log('Response data keys:', response.data ? Object.keys(response.data) : 'null');
       
-      // Try ALL possible response formats
       let codeText = '';
       
       if (typeof response.data === 'string') {
@@ -173,12 +172,10 @@ function App() {
       
       console.log('Execute Response:', response.data);
       
-      // THE FIX: Handle object output properly
       let outputText = '';
       const data = response.data;
       
       if (data.output !== undefined && data.output !== null) {
-        // If output is an object, stringify it
         if (typeof data.output === 'object') {
           outputText = JSON.stringify(data.output, null, 2);
         } else {
@@ -194,6 +191,7 @@ function App() {
       
     } catch (err) {
       console.error('Execute Error:', err);
+      console.error('Error Response Data:', err.response?.data);
       
       let errorMsg = '❌ EXECUTION FAILED\n\n';
       
@@ -201,6 +199,7 @@ function App() {
         if (typeof err.response.data === 'string') {
           errorMsg += err.response.data;
         } else {
+          errorMsg += 'Status: ' + err.response.status + '\n\n';
           errorMsg += err.response.data.detail || JSON.stringify(err.response.data, null, 2);
         }
       } else if (err.request) {
@@ -214,7 +213,6 @@ function App() {
     
     setExecuting(false);
   };
-
 
   return (
     <div className="App">
