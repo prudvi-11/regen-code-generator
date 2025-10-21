@@ -149,41 +149,39 @@ function App() {
         timeout: 30000
       });
       
-      console.log('Execute Full Response:', response);
-      console.log('Execute Response Data:', response.data);
+      console.log('Execute Response:', response);
+      console.log('Execute Data:', response.data);
       
-      if (response.data) {
-        if (typeof response.data.output === 'string') {
-          setTerminalOutput(response.data.output || '✅ Executed (No output)');
-        } else if (response.data.error) {
-          setTerminalOutput('❌ ERROR:\n\n' + response.data.error);
-        } else if (response.data.output !== undefined) {
-          setTerminalOutput(String(response.data.output) || '✅ Executed (No output)');
+      // THE FIX: Properly stringify the output
+      let outputText = '';
+      
+      if (response.data.output !== undefined && response.data.output !== null) {
+        // Convert to string safely
+        if (typeof response.data.output === 'object') {
+          outputText = JSON.stringify(response.data.output, null, 2);
         } else {
-          setTerminalOutput('❌ Unexpected format:\n\n' + JSON.stringify(response.data, null, 2));
+          outputText = String(response.data.output);
         }
+      } else if (response.data.error) {
+        outputText = '❌ ERROR:\n\n' + String(response.data.error);
       } else {
-        setTerminalOutput('❌ No response from server');
+        outputText = JSON.stringify(response.data, null, 2);
       }
+      
+      setTerminalOutput(outputText || '(No output)');
       
     } catch (err) {
       console.error('Execute Error:', err);
-      console.error('Error Response:', err.response);
       
       let errorMsg = '❌ EXECUTION FAILED\n\n';
       
-      if (err.response) {
-        console.log('Error Response Data:', err.response.data);
-        
+      if (err.response && err.response.data) {
         if (typeof err.response.data === 'string') {
           errorMsg += err.response.data;
-        } else if (err.response.data) {
-          errorMsg += err.response.data.detail || 
-                      err.response.data.error || 
-                      err.response.data.message || 
-                      JSON.stringify(err.response.data, null, 2);
+        } else if (err.response.data.detail) {
+          errorMsg += err.response.data.detail;
         } else {
-          errorMsg += 'Server error: ' + err.response.statusText;
+          errorMsg += JSON.stringify(err.response.data, null, 2);
         }
       } else if (err.request) {
         errorMsg += '🌐 Cannot reach server';
