@@ -5,76 +5,118 @@ import axios from 'axios';
 const API_URL = 'https://regen-backend-17jv.onrender.com/api';
 
 function App() {
-  const [language, setLanguage] = useState('python');
-  const [description, setDescription] = useState('');
+  const [prompt, setPrompt] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
   const [editorCode, setEditorCode] = useState('');
-  const [input, setInput] = useState('');
+  const [codeInput, setCodeInput] = useState('');
   const [output, setOutput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showGenerated, setShowGenerated] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleGenerate = async () => {
-    if (!description.trim()) {
-      alert('Please enter a description');
+  const generateCode = async () => {
+    if (!prompt.trim()) {
+      setError('Please enter a prompt');
+      setTimeout(() => setError(''), 3000);
       return;
     }
 
     setLoading(true);
+    setError('');
     setGeneratedCode('');
-    setShowGenerated(false);
 
     try {
       const response = await axios.post(`${API_URL}/generate`, {
-        prompt: `Write ${language} code: ${description}`
+        prompt: prompt
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
-      setGeneratedCode(response.data.code);
-      setShowGenerated(true);
-    } catch (error) {
-      alert('Failed to generate code: ' + (error.response?.data?.detail || error.message));
+      if (response.data && response.data.code) {
+        setGeneratedCode(response.data.code);
+      } else {
+        setError('No code generated');
+      }
+    } catch (err) {
+      console.error('Generate Error:', err);
+      let errorMsg = 'Failed to generate code';
+      
+      if (err.response) {
+        errorMsg = err.response.data?.detail || err.response.data?.message || errorMsg;
+      } else if (err.request) {
+        errorMsg = 'Backend server not responding. Please wait 30 seconds and try again.';
+      } else {
+        errorMsg = err.message;
+      }
+      
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTransfer = () => {
+  const transferToEditor = () => {
     setEditorCode(generatedCode);
-    setShowGenerated(false);
     setOutput('');
+    setError('');
   };
 
-  const handleExecute = async () => {
+  const executeCode = async () => {
     if (!editorCode.trim()) {
-      alert('Please enter code to execute');
+      setError('Please enter code to execute');
+      setTimeout(() => setError(''), 3000);
       return;
     }
 
     setLoading(true);
+    setError('');
     setOutput('');
 
     try {
       const response = await axios.post(`${API_URL}/execute`, {
         code: editorCode,
-        input: input
+        input: codeInput || ''
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
-      setOutput(response.data.output);
-    } catch (error) {
-      setOutput('Error: ' + (error.response?.data?.detail || error.message));
+      if (response.data && response.data.output !== undefined) {
+        setOutput(response.data.output);
+      } else {
+        setOutput('Code executed but no output');
+      }
+    } catch (err) {
+      console.error('Execute Error:', err);
+      let errorMsg = 'Failed to execute code';
+      
+      if (err.response) {
+        errorMsg = err.response.data?.detail || err.response.data?.message || errorMsg;
+      } else if (err.request) {
+        errorMsg = 'Backend server not responding';
+      } else {
+        errorMsg = err.message;
+      }
+      
+      setError(errorMsg);
+      setOutput('Error: ' + errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleClear = () => {
+  const clearAll = () => {
     setEditorCode('');
-    setInput('');
+    setCodeInput('');
     setOutput('');
+    setError('');
   };
 
   return (
     <div className="App">
+      {/* HEADER */}
       <header className="app-header">
         <div className="brand">
           <h1>REGEN</h1>
@@ -82,63 +124,65 @@ function App() {
         </div>
       </header>
 
+      {/* WORKSPACE */}
       <div className="workspace">
         {/* LEFT PANEL - CODE GENERATOR */}
         <div className="generator-panel">
           <div className="section-header">
-            <h2>⚡ Code Generator</h2>
+            <h2>⚡ AI Code Generator</h2>
           </div>
 
           <div className="generator-body">
             <div className="form-group">
-              <label>Language</label>
-              <select 
-                className="select-input"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-              >
-                <option value="python">Python</option>
-                <option value="javascript">JavaScript</option>
-                <option value="java">Java</option>
-                <option value="cpp">C++</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Description</label>
+              <label>Describe the code you want to generate:</label>
               <textarea
                 className="description-input"
-                rows="6"
-                placeholder="Describe the code you want to generate..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                rows="8"
+                placeholder="Example: Create a Python function to calculate the factorial of a number"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
               />
             </div>
 
             <button 
               className="btn-primary"
-              onClick={handleGenerate}
+              onClick={generateCode}
               disabled={loading}
             >
               {loading ? '⏳ Generating...' : '✨ Generate Code'}
             </button>
+
+            {error && (
+              <div style={{
+                marginTop: '1rem',
+                padding: '0.75rem',
+                background: '#fee2e2',
+                border: '1px solid #fecaca',
+                borderRadius: '4px',
+                color: '#991b1b',
+                fontSize: '0.85rem'
+              }}>
+                ❌ {error}
+              </div>
+            )}
           </div>
 
-          {showGenerated && generatedCode && (
+          {/* GENERATED CODE PANEL */}
+          {generatedCode && (
             <div className="output-panel-gen">
               <div className="section-header">
                 <h2>✅ Generated Code</h2>
                 <div className="header-actions">
                   <button 
                     className="btn-transfer"
-                    onClick={handleTransfer}
+                    onClick={transferToEditor}
                     disabled={loading}
                   >
-                    ➡️ Transfer
+                    ➡️ Transfer to Editor
                   </button>
                   <button 
                     className="btn-close"
-                    onClick={() => setShowGenerated(false)}
+                    onClick={() => setGeneratedCode('')}
                   >
                     ✕
                   </button>
@@ -159,14 +203,14 @@ function App() {
               <div className="header-actions">
                 <button 
                   className="btn-success"
-                  onClick={handleExecute}
-                  disabled={loading}
+                  onClick={executeCode}
+                  disabled={loading || !editorCode}
                 >
-                  ▶️ Run
+                  {loading ? '⏳ Running...' : '▶️ Run Code'}
                 </button>
                 <button 
                   className="btn-danger"
-                  onClick={handleClear}
+                  onClick={clearAll}
                 >
                   🗑️ Clear
                 </button>
@@ -174,20 +218,20 @@ function App() {
             </div>
 
             <div className="input-section">
-              <label>Input (optional)</label>
+              <label>Input (optional - one per line):</label>
               <textarea
                 className="input-field"
                 rows="2"
-                placeholder="Enter input for your code..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
+                placeholder="Enter inputs for your code..."
+                value={codeInput}
+                onChange={(e) => setCodeInput(e.target.value)}
               />
             </div>
 
             <div className="editor-wrapper">
               <textarea
                 className="code-editor"
-                placeholder="Write or paste your code here..."
+                placeholder="Write or paste your code here, or transfer generated code from the left panel..."
                 value={editorCode}
                 onChange={(e) => setEditorCode(e.target.value)}
                 style={{
@@ -200,12 +244,14 @@ function App() {
                   fontFamily: "'Courier New', monospace",
                   fontSize: '0.9rem',
                   lineHeight: '1.5',
-                  resize: 'none'
+                  resize: 'none',
+                  outline: 'none'
                 }}
               />
             </div>
           </div>
 
+          {/* TERMINAL OUTPUT */}
           {output && (
             <div className="terminal-panel">
               <div className="section-header terminal-header">
@@ -213,6 +259,7 @@ function App() {
                 <button 
                   className="btn-close"
                   onClick={() => setOutput('')}
+                  style={{color: '#60a5fa'}}
                 >
                   ✕
                 </button>
@@ -225,6 +272,7 @@ function App() {
         </div>
       </div>
 
+      {/* FOOTER */}
       <footer className="app-footer">
         <p>
           <strong>Developed by B. Prudvi Thirumal Reddy</strong> | 
