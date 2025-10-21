@@ -3,7 +3,8 @@ import Editor from "@monaco-editor/react";
 import axios from 'axios';
 import './App.css';
 
-const API_URL = 'https://regen-backend-17jv.onrender.com/api';
+const API_URL = 'http://localhost:8000/api';
+
 
 function App() {
   const [code, setCode] = useState('');
