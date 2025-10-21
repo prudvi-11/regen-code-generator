@@ -171,60 +171,37 @@ function App() {
         timeout: 30000
       });
       
-      console.log('=== EXECUTE RESPONSE ===');
-      console.log('Full response:', response);
-      console.log('Response data:', response.data);
-      console.log('Response data type:', typeof response.data);
-      console.log('Response data keys:', response.data ? Object.keys(response.data) : 'null');
+      console.log('Execute Response:', response.data);
       
-      // Try ALL possible output formats
+      // THE FIX: Handle object output properly
       let outputText = '';
+      const data = response.data;
       
-      if (typeof response.data === 'string') {
-        outputText = response.data;
-      } else if (response.data) {
-        const data = response.data;
-        
-        // Check all possible field names
-        if (data.output !== undefined && data.output !== null) {
-          if (typeof data.output === 'object') {
-            outputText = JSON.stringify(data.output, null, 2);
-          } else {
-            outputText = String(data.output);
-          }
-        } else if (data.result !== undefined) {
-          outputText = String(data.result);
-        } else if (data.stdout) {
-          outputText = String(data.stdout);
-        } else if (data.error) {
-          outputText = '❌ ERROR:\n\n' + String(data.error);
-        } else if (data.stderr) {
-          outputText = '❌ STDERR:\n\n' + String(data.stderr);
+      if (data.output !== undefined && data.output !== null) {
+        // If output is an object, stringify it
+        if (typeof data.output === 'object') {
+          outputText = JSON.stringify(data.output, null, 2);
         } else {
-          outputText = '❌ Unknown format\n\nFull response:\n' + JSON.stringify(data, null, 2);
+          outputText = String(data.output);
         }
+      } else if (data.error) {
+        outputText = '❌ ERROR:\n\n' + String(data.error);
       } else {
-        outputText = '❌ Empty response';
+        outputText = JSON.stringify(data, null, 2);
       }
       
       setTerminalOutput(outputText || '(No output)');
       
     } catch (err) {
-      console.error('=== EXECUTE ERROR ===');
-      console.error('Error:', err);
-      console.error('Error response:', err.response);
+      console.error('Execute Error:', err);
       
       let errorMsg = '❌ EXECUTION FAILED\n\n';
       
-      if (err.response) {
-        errorMsg += 'Status: ' + err.response.status + '\n';
-        
+      if (err.response?.data) {
         if (typeof err.response.data === 'string') {
           errorMsg += err.response.data;
-        } else if (err.response.data) {
-          errorMsg += err.response.data.detail || 
-                      err.response.data.error || 
-                      JSON.stringify(err.response.data, null, 2);
+        } else {
+          errorMsg += err.response.data.detail || JSON.stringify(err.response.data, null, 2);
         }
       } else if (err.request) {
         errorMsg += 'Cannot reach server';
@@ -237,6 +214,7 @@ function App() {
     
     setExecuting(false);
   };
+
 
   return (
     <div className="App">
