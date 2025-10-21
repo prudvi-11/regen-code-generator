@@ -3,7 +3,7 @@ import Editor from "@monaco-editor/react";
 import axios from 'axios';
 import './App.css';
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'https://regen-backend-17jv.onrender.com/api';
 
 function App() {
   const [code, setCode] = useState('');
@@ -90,13 +90,21 @@ function App() {
     
     try {
       const response = await axios.post(`${API_URL}/generate`, {
-        prompt: prompt,
-        code: code,
-        language: language
+        prompt: prompt
       });
-      setGeneratedCode(response.data.content);
+      
+      console.log('Generate Response:', response.data);
+      
+      // FIX: Properly extract code from response
+      if (response.data && response.data.code) {
+        setGeneratedCode(response.data.code);
+      } else {
+        setGeneratedCode('Error: No code generated');
+      }
     } catch (err) {
-      setGeneratedCode('Error: ' + (err.response?.data?.detail || err.message));
+      console.error('Generate Error:', err);
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to generate code';
+      setGeneratedCode('Error: ' + errorMsg);
     }
     setLoading(false);
   };
@@ -112,11 +120,6 @@ function App() {
       return;
     }
 
-    if (language !== 'python' && language !== 'javascript') {
-      alert('Execution only supported for Python and JavaScript');
-      return;
-    }
-
     setExecuting(true);
     setTerminalOutput('>>> Running program...\n\n');
     setShowTerminal(true);
@@ -124,21 +127,22 @@ function App() {
     try {
       const response = await axios.post(`${API_URL}/execute`, {
         code: code,
-        language: language,
-        user_inputs: userInputs
+        input: userInputs
       });
       
-      const output = response.data.output || '';
-      const error = response.data.error || '';
+      console.log('Execute Response:', response.data);
       
-      if (error) {
-        setTerminalOutput('❌ ERROR:\n' + error);
+      // FIX: Properly extract output from response
+      if (response.data && response.data.output !== undefined) {
+        setTerminalOutput(response.data.output || '(No output produced)');
       } else {
-        setTerminalOutput(output || '(No output produced)');
+        setTerminalOutput('Error: Invalid response from server');
       }
       
     } catch (err) {
-      setTerminalOutput('❌ Execution failed: ' + (err.response?.data?.detail || err.message));
+      console.error('Execute Error:', err);
+      const errorMsg = err.response?.data?.detail || err.message || 'Execution failed';
+      setTerminalOutput('❌ ERROR: ' + errorMsg);
     }
     
     setExecuting(false);
@@ -155,7 +159,7 @@ function App() {
       <div className="workspace">
         <div className="generator-panel">
           <div className="section-header">
-            <h2>Code Generator</h2>
+            <h2>⚡ Code Generator</h2>
           </div>
           
           <div className="generator-body">
@@ -188,7 +192,7 @@ function App() {
               disabled={loading}
               className="btn-primary"
             >
-              {loading ? 'Generating...' : 'Generate Code'}
+              {loading ? '⏳ Generating...' : '✨ Generate Code'}
             </button>
           </div>
 
@@ -203,14 +207,14 @@ function App() {
               </div>
               
               <div className="section-header">
-                <h2>Generated Code</h2>
+                <h2>✅ Generated Code</h2>
                 <div className="header-actions">
                   <button 
                     onClick={handleTransferCode}
                     disabled={!generatedCode || loading}
                     className="btn-transfer"
                   >
-                    ➜ Use Code
+                    ➡️ Transfer
                   </button>
                   <button 
                     onClick={() => setShowGenOutput(false)}
@@ -222,7 +226,9 @@ function App() {
               </div>
               
               <div className="output-body">
-                <pre className="generated-code">{generatedCode || 'Generating...'}</pre>
+                <pre className="generated-code">
+                  {loading ? 'Generating code...' : generatedCode || 'No code generated yet'}
+                </pre>
               </div>
             </div>
           )}
@@ -231,20 +237,20 @@ function App() {
         <div className="right-panel">
           <div className="editor-section">
             <div className="section-header">
-              <h2>Code Editor</h2>
+              <h2>📝 Code Editor</h2>
               <div className="header-actions">
                 <button 
                   onClick={handleExecuteCode} 
                   disabled={executing || !code}
                   className="btn-success"
                 >
-                  {executing ? 'Running...' : '▶ Run'}
+                  {executing ? '⏳ Running...' : '▶️ Run'}
                 </button>
                 <button 
                   onClick={() => setCode('')}
                   className="btn-danger"
                 >
-                  Clear
+                  🗑️ Clear
                 </button>
               </div>
             </div>
@@ -252,7 +258,7 @@ function App() {
             <div className="input-section">
               <label>📥 Program Inputs (one per line)</label>
               <textarea
-                placeholder="Enter inputs here (one per line)&#10;Example:&#10;John&#10;25"
+                placeholder="Enter inputs here (one per line)"
                 value={userInputs}
                 onChange={(e) => setUserInputs(e.target.value)}
                 className="input-field"
@@ -290,7 +296,7 @@ function App() {
               </div>
               
               <div className="section-header terminal-header">
-                <h2>🖥️ Terminal Output</h2>
+                <h2>💻 Terminal Output</h2>
                 <button 
                   onClick={() => setShowTerminal(false)}
                   className="btn-close"
